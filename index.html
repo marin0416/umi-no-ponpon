@@ -1,0 +1,1158 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>うみのぽんぽん</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@700;900&display=swap">
+<style>
+/* Layout: one full-screen sea. Single deliberate look (underwater), so colors are fixed in both themes. */
+:root {
+  --ink: #ffffff;
+  --shadow: rgba(4, 40, 80, .35);
+  --btn: #ff8a5c;
+  --btn-dark: #d9623a;
+  --gold: #ffe066;
+  --sea-deep: #0b4f8a;
+  --font-round: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+  color-scheme: light;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--sea-deep);
+  color: var(--ink);
+  font-family: var(--font-round);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#stage { position: fixed; inset: 0; }
+canvas { display: block; width: 100%; height: 100%; }
+
+.hud {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: 16px; right: 16px;
+  display: grid; grid-template-columns: 1fr auto; align-items: start; gap: 10px;
+  pointer-events: none;
+}
+.hud-left { display: grid; gap: 6px; min-width: 0; }
+.stage-name { font-size: clamp(15px, 3.8vw, 19px); font-weight: 900; text-shadow: 0 2px 0 var(--shadow); }
+.count {
+  font-size: clamp(26px, 6.5vw, 40px);
+  font-weight: 900;
+  text-shadow: 0 3px 0 var(--shadow);
+  display: flex; align-items: baseline; gap: 6px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.count .star { color: var(--gold); }
+.count .goal { font-size: .55em; opacity: .85; }
+.bar { height: 12px; width: min(260px, 60vw); border-radius: 99px; background: rgba(255,255,255,.22); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--gold); border-radius: 99px; transition: width .25s; }
+.sound {
+  pointer-events: auto;
+  font: inherit; font-size: 15px; font-weight: 700;
+  color: var(--ink);
+  background: rgba(255,255,255,.18);
+  border: 2px solid rgba(255,255,255,.5);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+button:focus-visible { outline: 4px solid var(--gold); outline-offset: 3px; }
+
+.cover {
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+  padding-inline: 16px;
+  text-align: center;
+  background: rgba(8, 60, 110, .35);
+}
+.cover-inner { display: grid; gap: 20px; justify-items: center; max-width: 30rem; }
+.cover h1 {
+  margin: 0;
+  font-size: clamp(40px, 11vw, 72px);
+  font-weight: 900;
+  line-height: 1.1;
+  text-shadow: 0 5px 0 var(--shadow);
+  text-wrap: balance;
+}
+.cover p { margin: 0; font-size: clamp(17px, 4.4vw, 22px); font-weight: 700; line-height: 1.6; }
+.start {
+  font: inherit;
+  font-size: clamp(30px, 8vw, 44px);
+  font-weight: 900;
+  color: #fff;
+  background: var(--btn);
+  border: none;
+  border-radius: 999px;
+  padding: 18px 56px 22px;
+  box-shadow: 0 8px 0 var(--btn-dark), 0 14px 24px var(--shadow);
+  cursor: pointer;
+  animation: bob 1.6s ease-in-out infinite;
+}
+.start:active { transform: translateY(6px); box-shadow: 0 2px 0 var(--btn-dark); }
+.sub {
+  font: inherit; font-size: 16px; font-weight: 700;
+  color: var(--ink); background: none;
+  border: 2px solid rgba(255,255,255,.6); border-radius: 999px;
+  padding: 8px 18px; cursor: pointer;
+}
+@keyframes bob { 50% { transform: translateY(-8px); } }
+
+.cheer {
+  position: fixed; inset: 0;
+  display: grid; place-items: center; align-content: center; gap: 8px;
+  pointer-events: none;
+  text-align: center;
+  padding-inline: 16px;
+}
+.cheer b {
+  font-size: clamp(48px, 14vw, 110px);
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: 0 6px 0 var(--btn-dark), 0 12px 30px var(--shadow);
+  line-height: 1.1;
+  text-wrap: balance;
+}
+.cheer span { font-size: clamp(20px, 5.5vw, 34px); font-weight: 900; text-shadow: 0 3px 0 var(--shadow); }
+.cheer.show { animation: pop 1.8s ease-out forwards; }
+.cheer.long { animation: popLong 3.2s ease-out forwards; }
+@keyframes pop {
+  0% { transform: scale(.2); opacity: 0; }
+  20% { transform: scale(1.15); opacity: 1; }
+  30% { transform: scale(1); }
+  80% { opacity: 1; }
+  100% { transform: scale(1.05); opacity: 0; }
+}
+@keyframes popLong {
+  0% { transform: scale(.2); opacity: 0; }
+  12% { transform: scale(1.15); opacity: 1; }
+  18% { transform: scale(1); }
+  88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.ending {
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+  padding-inline: 16px; text-align: center;
+}
+.ending .cover-inner { gap: 18px; padding: 24px 12px; border-radius: 40px; background: radial-gradient(closest-side, rgba(8,40,90,.45), rgba(8,40,90,0)); }
+.ending h2 {
+  margin: 0;
+  font-size: clamp(44px, 13vw, 92px); font-weight: 900; line-height: 1.1;
+  color: var(--gold);
+  text-shadow: 0 6px 0 var(--btn-dark), 0 12px 30px var(--shadow);
+  text-wrap: balance;
+}
+.ending p { margin: 0; font-size: clamp(18px, 4.8vw, 26px); font-weight: 900; line-height: 1.6; text-shadow: 0 3px 0 var(--shadow); }
+
+.ending { pointer-events: none; }
+.ending .again { pointer-events: auto; animation: fadeUp .8s ease-out both, bob 1.6s ease-in-out .8s infinite; }
+.ending h2 { display: flex; flex-wrap: wrap; justify-content: center; }
+.ending h2 .ch { display: inline-block; animation: jump .9s cubic-bezier(.3,1.6,.5,1) both, wave 1.4s ease-in-out infinite; }
+.ending .end-msg { animation: fadeUp .8s ease-out 1.2s both; }
+.ending .hint { font-size: clamp(14px, 3.8vw, 18px); opacity: .9; animation: fadeUp .8s ease-out 2.4s both, blink 1.6s ease-in-out 3.2s infinite; }
+.medal {
+  width: clamp(110px, 30vw, 160px); aspect-ratio: 1; max-width: 100%;
+  border-radius: 50%;
+  display: grid; place-items: center; align-content: center;
+  background: radial-gradient(circle at 35% 30%, #fff6c2, #ffd23f 45%, #e8a10c);
+  box-shadow: 0 0 0 8px rgba(255,255,255,.35), 0 0 40px 10px rgba(255,224,102,.7), 0 10px 0 #b97a06;
+  color: #8a4b00; line-height: 1;
+  animation: medalIn 1.1s cubic-bezier(.3,1.5,.5,1) both, spinGlow 3s ease-in-out 1.1s infinite;
+}
+.medal span { font-size: clamp(30px, 8vw, 44px); }
+.medal b { font-size: clamp(34px, 9vw, 52px); font-weight: 900; }
+.flash { position: fixed; inset: 0; background: #fff; pointer-events: none; animation: flash .9s ease-out forwards; }
+@keyframes flash { 0% { opacity: 0; } 8% { opacity: .95; } 100% { opacity: 0; } }
+@keyframes medalIn { 0% { transform: scale(0) rotate(-200deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes spinGlow { 50% { transform: scale(1.08) rotate(6deg); } }
+@keyframes jump { 0% { transform: translateY(-120vh) scale(.5); } 100% { transform: translateY(0) scale(1); } }
+@keyframes wave { 50% { transform: translateY(-10px); } }
+@keyframes fadeUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: none; } }
+@keyframes blink { 50% { opacity: .45; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .start, .medal, .ending h2 .ch, .ending .hint { animation: none !important; }
+}
+</style>
+
+</head>
+<body>
+<div id="stage"><canvas id="c"></canvas></div>
+
+<div class="hud">
+  <div class="hud-left">
+    <div class="stage-name" id="stageName">ステージ 1</div>
+    <div class="count" aria-live="polite"><span class="star">★</span><span id="n">0</span><span class="goal" id="goal">/ 100</span></div>
+    <div class="bar"><i id="bar"></i></div>
+  </div>
+  <button class="sound" id="snd" type="button">おと：あり</button>
+</div>
+
+<div class="cheer" id="cheer" hidden><b id="cheerBig">すごい！</b><span id="cheerSmall"></span></div>
+
+<div class="flash" id="flash" hidden></div>
+
+<div class="ending" id="ending" hidden>
+  <div class="cover-inner">
+    <div class="medal" aria-hidden="true"><span>★</span><b>100</b></div>
+    <h2 id="endTitle" aria-label="ぜんぶクリア！"></h2>
+    <p class="end-msg">うみの なかまを まもったよ！<br>すごい すごい！</p>
+    <p class="hint" id="hint">がめんを タッチすると はなびが でるよ</p>
+    <button class="start again" id="again" type="button" hidden>もういちど</button>
+  </div>
+</div>
+
+<div class="cover" id="cover">
+  <div class="cover-inner">
+    <h1>うみの<br>ぽんぽん</h1>
+    <p id="coverText">うみの なかまに<br>ゆびで タッチしてね</p>
+    <button class="start" id="start" type="button">あそぶ</button>
+    <button class="sub" id="restart" type="button" hidden>さいしょから</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const cv = $('c');
+  const ctx = cv.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W = 0, H = 0, DPR = 1;
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W * DPR; cv.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  // ================= STAGES =================
+  // goals are cumulative: 30 -> 60 -> 90 -> 100
+  const STAGES = [
+    null,
+    { name: 'ステージ 1', goal: 30, from: 0,  speed: 1.0, max: 5, kinds: ['jelly', 'fish', 'octo', 'turtle'], sea: ['#2bb3d9', '#0b4f8a'], song: 'calm' },
+    { name: 'ステージ 2', goal: 60, from: 30, speed: 1.55, max: 6, kinds: ['jelly', 'fish', 'octo', 'turtle', 'dolphin', 'dolphin'], sea: ['#25a0d6', '#0a3f7d'], song: 'bouncy' },
+    { name: 'ステージ 3', goal: 90, from: 60, speed: 1.0, max: 0, kinds: [], sea: ['#3a6fc4', '#1a2466'], song: 'boss', boss: { count: 6, hp: 5, scary: false } },
+    { name: 'ラスボス', goal: 100, from: 90, speed: 1.0, max: 0, kinds: [], sea: ['#4a2f78', '#120a2e'], song: 'final', boss: { count: 1, hp: 10, scary: true } },
+  ];
+  const LAST = STAGES.length - 1;
+  const SPEED = 1.5;   // overall speed for everything you tap (1 = original)
+  const BOSS_COLORS = ['#ffb3d9', '#c9a7ff', '#a8e6ff', '#ffcf4d', '#7ee081', '#ff9b7a', '#9fb4ff', '#ff8fb8', '#7fe0d4', '#ffd36e'];
+  const bcfg = () => STAGES[stage].boss;
+
+  let stage = 1, score = 0;
+  let mode = 'cover';   // cover | play | trans | end
+  let boss = null;       // { x, y, r, color, hp, idx, hitFlash, dying, enter }
+  let seaFrom = STAGES[1].sea.slice(), seaTo = STAGES[1].sea.slice(), seaMix = 1;
+
+  // ================= SOUND =================
+  let ac = null, soundOn = true, master = null, bgmGain = null, sfxGain = null, noiseBuf = null;
+  function audio() {
+    if (!ac) {
+      try {
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        master = ac.createGain(); master.gain.value = 1; master.connect(ac.destination);
+        bgmGain = ac.createGain(); bgmGain.gain.value = .55; bgmGain.connect(master);
+        sfxGain = ac.createGain(); sfxGain.gain.value = 1; sfxGain.connect(master);
+        noiseBuf = ac.createBuffer(1, ac.sampleRate * .2, ac.sampleRate);
+        const d = noiseBuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      } catch (e) { ac = null; }
+    }
+    if (ac && ac.state !== 'running') { try { ac.resume(); } catch (e) {} }
+    unlockIOS();
+    return ac;
+  }
+
+  // ---- iPhone fixes ----
+  // 1) Ask Safari to treat this as media playback so the silent switch doesn't mute it (Safari 16.4+).
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+  // 2) For older iOS: a looping silent <audio> started from a tap switches the page into playback mode.
+  let silentEl = null, unlocked = false;
+  function silentWav() {
+    const n = 4410, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const w = (o, str) => [...str].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+    v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 44100, true); v.setUint32(28, 88200, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+    w(36, 'data'); v.setUint32(40, n * 2, true);
+    let bin = ''; new Uint8Array(buf).forEach(x => bin += String.fromCharCode(x));
+    return 'data:audio/wav;base64,' + btoa(bin);
+  }
+  function unlockIOS() {
+    if (unlocked || !ac) return;
+    unlocked = true;
+    try { // play one silent sample through Web Audio inside the tap
+      const b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource();
+      src.buffer = b; src.connect(ac.destination); src.start(0);
+    } catch (e) {}
+    try {
+      silentEl = new Audio(silentWav());
+      silentEl.loop = true; silentEl.setAttribute('playsinline', ''); silentEl.volume = 0.01;
+      const pr = silentEl.play(); if (pr && pr.catch) pr.catch(() => { unlocked = false; });
+    } catch (e) {}
+  }
+  // 3) Any tap re-wakes the sound (iOS suspends it after the screen locks or the app is switched).
+  ['pointerdown', 'touchend', 'click'].forEach(ev => addEventListener(ev, () => { if (ac && soundOn) audio(); }, { capture: true, passive: true }));
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (silentEl) silentEl.pause(); }
+    else if (ac && soundOn) { try { ac.resume(); } catch (e) {} if (silentEl) silentEl.play().catch(() => {}); }
+  });
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+
+  function voice(dest, freq, t, dur, type, vol, slide) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(freq * slide, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(dest);
+    o.start(t); o.stop(t + dur + .05);
+  }
+  function tone(freq, dur = .25, type = 'sine', vol = .25, slide = 0) {
+    if (!soundOn) return;
+    const a = audio(); if (!a) return;
+    voice(sfxGain, freq, a.currentTime, dur, type, vol, slide);
+  }
+  const popScale = [72, 74, 76, 79, 81, 84];
+  let noteIdx = 0;
+  function popSound() {
+    const f = mtof(popScale[noteIdx++ % popScale.length]);
+    tone(f, .3, 'triangle', .3); tone(f * 2, .15, 'sine', .07);
+  }
+  function bubbleSound() { tone(300 + Math.random() * 200, .18, 'sine', .12, 2.2); }
+  function bossHitSound(hp, max, scary) {
+    if (scary) { tone(mtof(40 + (max - hp)), .3, 'sawtooth', .12, .7); tone(mtof(64 + (max - hp)), .2, 'triangle', .16); return; }
+    const f = mtof(60 + Math.round((max - hp) * 20 / max)); tone(f, .22, 'square', .09); tone(f * 1.5, .25, 'triangle', .18); }
+  function shootSound() { tone(130, .45, 'sawtooth', .1, .45); tone(138, .45, 'sawtooth', .07, .45); noise(.25, 900, .12); }
+  function roarSound() { tone(80, .9, 'sawtooth', .14, .6); tone(84, .9, 'square', .06, .55); noise(.6, 400, .2); setTimeout(() => tone(65, .6, 'sawtooth', .1, .7), 350); }
+  function noise(dur, freq, vol) {
+    if (!soundOn) return; const a = audio(); if (!a) return;
+    const t = a.currentTime, n = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    n.buffer = noiseBuf; n.loop = true; f.type = 'lowpass'; f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(80, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    n.connect(f).connect(g).connect(sfxGain); n.start(t); n.stop(t + dur + .05);
+  }
+  function ouchSound() { tone(180, .25, 'square', .08, .6); }
+  function inkPopSound() { tone(700, .15, 'triangle', .2, 1.8); }
+  function jingle(notes, step = .13, type = 'triangle') {
+    notes.forEach((m, k) => setTimeout(() => { if (m) tone(mtof(m), .35, type, .26); }, k * step * 1000));
+  }
+  const fanfare = () => jingle([72, 76, 79, 84]);
+  const clearJingle = () => jingle([72, 76, 79, 84, 0, 79, 84], .15);
+
+  // ---- BGM: small step sequencer, 8th-note steps, 32 steps per loop ----
+  const _ = null;
+  const SONGS = {
+    calm: { // stage 1: ゆったり海の中
+      bpm: 92,
+      mel: [72,_,76,_,79,_,76,_, 74,_,72,_,69,_,_,_, 72,_,76,_,79,_,81,_, 79,_,76,_,74,_,_,_],
+      bass: [48,_,_,_,55,_,_,_, 53,_,_,_,48,_,_,_, 48,_,_,_,55,_,_,_, 53,_,_,_,55,_,_,_],
+      arp: true, hat: false, kick: false, melType: 'sine',
+    },
+    bouncy: { // stage 2: ちょっと はやい、はずむ
+      bpm: 122,
+      mel: [76,79,81,79,76,_,72,_, 74,76,74,72,69,_,_,_, 76,79,81,84,81,_,79,_, 76,74,72,74,72,_,_,_],
+      bass: [48,60,48,60,45,57,45,57, 53,65,53,65,55,67,55,67, 48,60,48,60,45,57,45,57, 53,65,53,65,55,67,48,_],
+      arp: false, hat: true, kick: true, melType: 'triangle',
+    },
+    boss: { // stage 3: ボス戦、わくわく
+      bpm: 140,
+      mel: [69,_,72,74,76,_,74,72, 71,_,67,_,71,_,74,_, 69,_,72,74,76,_,79,76, 77,_,76,_,74,_,71,_],
+      bass: [45,45,57,45,45,57,45,57, 43,43,55,43,43,55,43,55, 41,41,53,41,41,53,41,53, 40,40,52,40,44,44,56,44],
+      arp: false, hat: true, kick: true, melType: 'square',
+    },
+    final: { // ラスボス: ちょっと こわい、でも たのしい
+      bpm: 164,
+      mel: [64,65,64,_,70,_,69,_, 64,65,64,_,63,_,_,_, 64,65,64,_,70,_,71,_, 72,71,70,_,69,_,58,_],
+      bass: [40,40,40,41,40,40,46,40, 40,40,40,41,39,39,39,_, 40,40,40,41,40,40,46,40, 41,41,41,46,45,45,34,_],
+      arp: false, hat: true, kick: true, melType: 'square', bassType: 'sawtooth',
+    },
+    victory: { // ぜんぶクリア: かちどき
+      bpm: 132,
+      mel: [72,_,72,74,76,_,72,_, 79,_,_,_,76,_,_,_, 77,_,77,79,81,_,77,_, 84,_,_,_,79,_,_,_],
+      bass: [48,_,60,_,48,_,60,_, 52,_,64,_,52,_,64,_, 53,_,65,_,53,_,65,_, 55,_,67,_,55,_,67,_],
+      arp: true, hat: true, kick: true, melType: 'triangle',
+    },
+    ending: { // クリア後: よろこび
+      bpm: 100,
+      mel: [72,76,79,84,_,79,_,_, 77,81,84,_,81,_,_,_, 76,79,84,_,79,76,_,74, 72,_,_,_,_,_,_,_],
+      bass: [48,_,55,_,48,_,55,_, 53,_,60,_,53,_,60,_, 55,_,62,_,55,_,62,_, 48,_,55,_,48,_,_,_],
+      arp: true, hat: false, kick: false, melType: 'triangle',
+    },
+  };
+  let song = null, step = 0, nextTime = 0, seqTimer = null;
+  function playSong(name) {
+    song = SONGS[name] || null; step = 0;
+    if (!ac) return;
+    nextTime = ac.currentTime + .1;
+    if (!seqTimer) seqTimer = setInterval(schedule, 25);
+  }
+  function schedule() {
+    if (!ac || !song) return;
+    const spb = 60 / song.bpm / 2; // seconds per 8th
+    while (nextTime < ac.currentTime + .15) {
+      if (soundOn) playStep(song, step % 32, nextTime, spb);
+      nextTime += spb; step++;
+    }
+  }
+  function playStep(s, i, t, spb) {
+    const m = s.mel[i];
+    if (m) voice(bgmGain, mtof(m), t, spb * 1.8, s.melType, s.melType === 'square' ? .035 : .07);
+    const b = s.bass[i];
+    if (b) voice(bgmGain, mtof(b), t, spb * (s.kick ? 1.0 : 3.5), s.bassType || 'sine', s.bassType ? .07 : .11);
+    if (s.arp && i % 2 === 1) {
+      const root = s.bass[i - (i % 8)] || 48;
+      voice(bgmGain, mtof(root + 24 + [0, 4, 7, 12][(i >> 1) % 4]), t, spb * 1.2, 'sine', .025);
+    }
+    if (s.kick && i % 4 === 0) voice(bgmGain, 140, t, .18, 'sine', .25, .35);
+    if (s.hat && i % 2 === 1) {
+      const n = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      n.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = 7000;
+      g.gain.setValueAtTime(.05, t); g.gain.exponentialRampToValueAtTime(.0001, t + .05);
+      n.connect(f).connect(g).connect(bgmGain); n.start(t); n.stop(t + .06);
+    }
+  }
+
+  // ================= CREATURES =================
+  const COLORS = {
+    jelly: ['#ffb3d9', '#c9a7ff', '#a8e6ff'],
+    fish: ['#ffcf4d', '#ff8a5c', '#7ee081'],
+    octo: ['#ff7a7a', '#ff9fd1'],
+    turtle: ['#6fd38a'],
+    dolphin: ['#7fb8e6', '#9cc9ee'],
+  };
+  const things = [], parts = [], bubbles = [];
+
+  function size() { return Math.max(70, Math.min(W, H) * 0.16); }
+
+  function spawn(kindsOverride) {
+    const st = STAGES[stage];
+    const kinds = kindsOverride || st.kinds;
+    const kind = kinds[Math.floor(Math.random() * kinds.length)];
+    const pal = COLORS[kind];
+    const r = size() * (0.85 + Math.random() * 0.3) * (kind === 'dolphin' ? 1.15 : 1);
+    const dir = Math.random() < .5 ? 1 : -1;
+    const speed = (reduce ? 0.25 : 0.55) * (0.7 + Math.random() * 0.6) * (st ? st.speed : 1) * SPEED;
+    let x, y, vx, vy;
+    if (kind === 'jelly') {
+      x = r + Math.random() * (W - 2 * r); y = H + r;
+      vx = (Math.random() - .5) * .3; vy = -speed * 0.9;
+    } else {
+      x = dir > 0 ? -r : W + r; y = H * 0.3 + Math.random() * H * 0.45;
+      vx = dir * speed * (kind === 'dolphin' ? 1.4 : 1.2); vy = 0;
+    }
+    things.push({ kind, color: pal[Math.floor(Math.random() * pal.length)], x, y, baseY: y, vx, vy, r, dir, t: Math.random() * 10, hit: 0 });
+  }
+
+  function burst(x, y, color, n = reduce ? 10 : 22, power = 1) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.PI * 2 * i / n + Math.random() * .3;
+      const s = (2 + Math.random() * 4) * power;
+      parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, star: i % 2 === 0, color: i % 3 ? color : '#ffe066', size: 8 + Math.random() * 8 });
+    }
+  }
+  function addBubbles(x, y, n = 6) {
+    for (let i = 0; i < n; i++) bubbles.push({ x: x + (Math.random() - .5) * 40, y: y + (Math.random() - .5) * 20, r: 4 + Math.random() * 10, vy: -(1 + Math.random() * 1.5), life: 1 });
+  }
+
+  // ================= BOSS =================
+  function makeBoss(idx, hpLeft) {
+    const c = bcfg();
+    const r = Math.min(W, H) * (c.scary ? 0.36 : 0.3);
+    boss = { idx, scary: c.scary, max: c.hp, color: c.scary ? '#5b2a86' : BOSS_COLORS[idx % BOSS_COLORS.length], r, x: W / 2, y: H * (c.scary ? 0.45 : 0.55), hp: hpLeft || c.hp, hitFlash: 0, dying: 0, enter: 0, appear: 0, t: Math.random() * 10, charge: 0, nextShot: 90 };
+    if (c.scary) roarSound(); else tone(mtof(67), .18, 'triangle', .2, 1.5);
+  }
+  function bossTargetY() { return H * (boss && boss.scary ? 0.45 : 0.55); }
+
+  // ---- last boss attack: slow ink balls. Tap to pop them. If one lands, a small shake and nothing is lost. ----
+  const inks = [];
+  let shake = 0;
+  function shoot() {
+    const b = boss;
+    const n = 2 + (Math.random() < .5 ? 1 : 0), volley = { healed: false };
+    for (let i = 0; i < n; i++) {
+      const tx = W * (0.1 + Math.random() * .8), ty = H + 30;
+      const sx = b.x + (i - (n - 1) / 2) * b.r * .35, sy = b.y + b.r * .3;
+      const d = Math.hypot(tx - sx, ty - sy), sp = (reduce ? 1.6 : 2.6) * (0.85 + Math.random() * .3);
+      inks.push({ x: sx, y: sy, vx: (tx - sx) / d * sp, vy: (ty - sy) / d * sp, r: Math.max(34, Math.min(W, H) * .07), t: Math.random() * 10, volley });
+    }
+    shootSound();
+  }
+
+  // ================= UI =================
+  function updateHud() {
+    const st = STAGES[stage];
+    $('stageName').textContent = st.name + (st.boss && st.boss.count > 1 ? `　あと ${st.boss.count - bossDefeated()} ひき` : '');
+    $('n').textContent = score;
+    $('goal').textContent = '/ ' + st.goal;
+    const p = Math.max(0, Math.min(1, (score - st.from) / (st.goal - st.from)));
+    $('bar').style.width = (p * 100) + '%';
+  }
+  function bossDefeated() { const st = STAGES[stage]; return st.boss ? Math.floor((score - st.from) / st.boss.hp) : 0; }
+
+  let cheerTimer = 0;
+  function cheer(big, small = '', long = false) {
+    const el = $('cheer');
+    $('cheerBig').textContent = big; $('cheerSmall').textContent = small;
+    el.hidden = false; el.classList.remove('show', 'long'); void el.offsetWidth;
+    el.classList.add(long ? 'long' : 'show');
+    clearTimeout(cheerTimer);
+    cheerTimer = setTimeout(() => { el.hidden = true; }, long ? 3300 : 1900);
+  }
+  function celebrateBursts(k = 5) {
+    for (let i = 0; i < k; i++) setTimeout(() => burst(W * (0.15 + Math.random() * .7), H * (0.2 + Math.random() * .5), BOSS_COLORS[i % BOSS_COLORS.length]), i * 160);
+  }
+
+  function setSea(colors) { seaFrom = currentSea(); seaTo = colors.slice(); seaMix = 0; }
+  function currentSea() { return [mixHex(seaFrom[0], seaTo[0], seaMix), mixHex(seaFrom[1], seaTo[1], seaMix)]; }
+  function mixHex(a, b, t) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const c = [16, 8, 0].map(s => Math.round(((pa >> s) & 255) * (1 - t) + ((pb >> s) & 255) * t));
+    return '#' + c.map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  function enterStage(n, fresh) {
+    stage = n;
+    const st = STAGES[n];
+    setSea(st.sea);
+    playSong(st.song);
+    boss = null; inks.length = 0;
+    if (st.boss) {
+      const done = (score - st.from) % st.boss.hp;
+      makeBoss(Math.max(0, bossDefeated()), st.boss.hp - done);
+    }
+    mode = 'play';
+    updateHud();
+    if (fresh) {
+      const sub = { 1: 'スタート！', 2: 'イルカも きたよ！', 3: 'おおきな クラゲが きたよ！', 4: 'こわい クラゲが あらわれた！' }[n];
+      cheer(n === LAST ? 'ラスボス！' : st.name, sub);
+    }
+  }
+
+  function stageClear() {
+    mode = 'trans';
+    // every creature on screen pops into stars
+    things.forEach(th => { if (!th.hit) { th.hit = .01; burst(th.x, th.y, th.color, 12); } });
+    clearJingle();
+    celebrateBursts(8);
+    song = null;
+    cheer(STAGES[stage].name, 'クリア！', true);
+    setTimeout(() => enterStage(stage + 1, true), 3400);
+  }
+
+  // ---- the big finish: flash -> やったー -> fireworks + parade -> medal -> (later) もういちど ----
+  let partyTimer = null, endTimers = [], rainbow = 0;
+  const later = (fn, ms) => endTimers.push(setTimeout(() => { if (mode === 'end') fn(); }, ms));
+  function gameClear() {
+    mode = 'end';
+    song = null;
+    inks.forEach(k => burst(k.x, k.y, '#c9a7ff', 8)); inks.length = 0;
+    const fl = $('flash'); fl.hidden = false; fl.style.animation = 'none'; void fl.offsetWidth; fl.style.animation = '';
+    later(() => { fl.hidden = true; }, 950);
+    shake = 1.6;
+    defeatSound();
+    later(() => setSea(['#3cc8e8', '#1670b0']), 300);
+    later(() => { cheer('やったー！', 'ラスボスを たおした！', true); victoryJingle(); celebrateBursts(10); }, 900);
+    later(() => {
+      partyTimer = setInterval(() => { if (mode === 'end') launch(W * (0.12 + Math.random() * .76)); }, reduce ? 1200 : 520);
+      for (let i = 0; i < 4; i++) setTimeout(() => launch(W * (0.2 + i * .2)), i * 180);
+    }, 1800);
+    later(() => { confettiOn = true; for (let i = 0; i < 6; i++) setTimeout(() => { if (mode === 'end') spawn(['fish', 'dolphin', 'turtle', 'jelly', 'octo']); }, i * 400); }, 2200);
+    later(() => {
+      const t = $('endTitle');
+      t.innerHTML = '';
+      [...'ぜんぶクリア！'].forEach((c, i) => {
+        if (i === 3) { const br = document.createElement('div'); br.style.cssText = 'flex-basis:100%;height:0'; t.appendChild(br); }
+        const sp = document.createElement('span'); sp.className = 'ch'; sp.textContent = c;
+        sp.style.animationDelay = `${.3 + i * .09}s, ${1.2 + i * .12}s`;
+        t.appendChild(sp);
+      });
+      $('again').hidden = true;
+      $('stageName').textContent = 'ぜんぶ クリア！';
+      $('ending').hidden = false;
+      playSong('victory');
+    }, 4300);
+    later(() => { $('again').hidden = false; }, 13000);   // give it time to sink in before "again"
+  }
+  function victoryJingle() { jingle([67, 72, 76, 79, 0, 76, 79, 0, 84, 84, 84], .14); }
+  function defeatSound() {
+    tone(220, 1.1, 'sawtooth', .12, .25); tone(233, 1.1, 'square', .05, .25);
+    noise(1.0, 1200, .25);
+    setTimeout(() => boom(1.2), 200);
+  }
+  function boom(v = 1) {
+    if (!soundOn) return; const a = audio(); if (!a) return;
+    noise(.5 * v, 700, .18 * v);
+    voice(sfxGain, 90, a.currentTime, .4, 'sine', .25 * Math.min(1, v), .4);
+  }
+
+  // fireworks: a rocket rises, then bursts into a ring that falls with gravity
+  const rockets = [], confetti = [];
+  let confettiOn = false;
+  const FW = ['#ff6b8f', '#ffe066', '#7ee081', '#a8e6ff', '#c9a7ff', '#ff9b7a', '#ffffff'];
+  function launch(x, ty) {
+    rockets.push({ x, y: H - 40, vy: -(9 + Math.random() * 4), ty: ty ?? H * (0.15 + Math.random() * .3), color: FW[Math.floor(Math.random() * FW.length)] });
+    tone(500, .3, 'sine', .05, 2.5);
+  }
+  function explode(r) {
+    const n = reduce ? 18 : 40, c2 = FW[Math.floor(Math.random() * FW.length)];
+    for (let i = 0; i < n; i++) {
+      const a = Math.PI * 2 * i / n, sp = 4.5 + (i % 2) * 1.5;
+      parts.push({ x: r.x, y: r.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, star: i % 4 === 0, color: i % 2 ? r.color : c2, size: 7 + Math.random() * 5, grav: .07, decay: .012, drag: .975 });
+    }
+    boom(.7);
+  }
+  function drawCelebration(t, dt) {
+    if (mode === 'end') rainbow = Math.min(1, rainbow + .006 * dt); else rainbow = Math.max(0, rainbow - .05 * dt);
+    if (rainbow > 0) {
+      ctx.save(); ctx.globalAlpha = rainbow * .55; ctx.lineWidth = Math.min(W, H) * .035;
+      ['#ff6b6b', '#ffa94d', '#ffe066', '#69db7c', '#4dabf7', '#9775fa'].forEach((c, i) => {
+        ctx.strokeStyle = c; ctx.beginPath();
+        ctx.arc(W / 2, H * .62, Math.max(W, H) * .5 - i * ctx.lineWidth, Math.PI, 0); ctx.stroke();
+      });
+      ctx.restore();
+    }
+    for (let i = rockets.length - 1; i >= 0; i--) {
+      const r = rockets[i];
+      r.y += r.vy * dt; r.vy *= .985;
+      ctx.fillStyle = r.color; ctx.beginPath(); ctx.arc(r.x, r.y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = .5; ctx.beginPath(); ctx.arc(r.x + (Math.random() - .5) * 3, r.y + 10, 2.5, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      if (r.y <= r.ty || r.vy > -2) { rockets.splice(i, 1); explode(r); }
+    }
+    if (confettiOn && mode === 'end' && confetti.length < (reduce ? 40 : 120) && Math.random() < .6)
+      confetti.push({ x: Math.random() * W, y: -20, vy: 1.5 + Math.random() * 2, vx: (Math.random() - .5) * 1.5, rot: Math.random() * 6, vr: (Math.random() - .5) * .2, w: 8 + Math.random() * 6, color: FW[Math.floor(Math.random() * 6)] });
+    for (let i = confetti.length - 1; i >= 0; i--) {
+      const c = confetti[i];
+      c.x += (c.vx + Math.sin(t / 400 + i) * .6) * dt; c.y += c.vy * dt; c.rot += c.vr * dt;
+      if (c.y > H + 20) { confetti.splice(i, 1); continue; }
+      ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); ctx.scale(1, Math.sin(t / 150 + i));
+      ctx.fillStyle = c.color; ctx.fillRect(-c.w / 2, -c.w / 4, c.w, c.w / 2); ctx.restore();
+    }
+  }
+
+  // ================= INPUT =================
+  cv.addEventListener('pointerdown', e => {
+    if (mode === 'cover') return;
+    e.preventDefault();
+    const x = e.clientX, y = e.clientY;
+
+    if (mode === 'end') { launch(x, Math.min(y, H * .7)); addBubbles(x, y, 4); return; }
+    if (mode !== 'play') { addBubbles(x, y); bubbleSound(); return; }
+
+    if (STAGES[stage].boss) {
+      // ink balls first: popping them is its own little win
+      for (let i = inks.length - 1; i >= 0; i--) {
+        const k = inks[i];
+        if (Math.hypot(k.x - x, k.y - y) < k.r * 1.5) {
+          inks.splice(i, 1); burst(k.x, k.y, '#c9a7ff', 12); inkPopSound(); return;
+        }
+      }
+      if (boss && !boss.dying && boss.enter <= 0 && Math.hypot(boss.x - x, boss.y - y) < boss.r * 1.15) {
+        boss.hp--; boss.hitFlash = 1; score++;
+        burst(x, y, boss.scary ? '#ffe066' : boss.color, reduce ? 6 : 10, .7);
+        bossHitSound(boss.hp, boss.max, boss.scary);
+        if (boss.hp <= 0) {
+          boss.dying = .001;
+          burst(boss.x, boss.y, boss.scary ? '#ffe066' : boss.color, boss.scary ? 70 : 40, boss.scary ? 2.4 : 1.8);
+          fanfare();
+          inks.forEach(k => burst(k.x, k.y, '#c9a7ff', 8)); inks.length = 0;
+          if (score >= STAGES[stage].goal) {
+            updateHud();
+            if (stage === LAST) gameClear(); else stageClear();
+            return;
+          }
+          cheer('やったね！', `あと ${STAGES[stage].boss.count - bossDefeated()} ひき`);
+        }
+        updateHud();
+      } else { addBubbles(x, y); bubbleSound(); }
+      return;
+    }
+
+    let best = null, bestD = Infinity;
+    for (const th of things) {
+      if (th.hit) continue;
+      const d = Math.hypot(th.x - x, th.y - y);
+      if (d < th.r * 1.35 && d < bestD) { best = th; bestD = d; }
+    }
+    if (best) {
+      best.hit = .01;
+      burst(best.x, best.y, best.color);
+      popSound();
+      score++;
+      updateHud();
+      if (score >= STAGES[stage].goal) stageClear();
+      else if (score % 10 === 0) { cheer('すごい！'); fanfare(); celebrateBursts(); }
+    } else { addBubbles(x, y); bubbleSound(); }
+  });
+
+  // ================= DRAWING =================
+  function drawSea(t) {
+    const [top, bot] = currentSea();
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, top); g.addColorStop(1, bot);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.globalAlpha = .07; ctx.fillStyle = '#fff';
+    for (let i = 0; i < 5; i++) {
+      const x = (W / 5) * i + Math.sin(t / 3000 + i) * 30;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 60, 0); ctx.lineTo(x + 160, H); ctx.lineTo(x + 40, H); ctx.fill();
+    }
+    ctx.restore();
+    ctx.fillStyle = '#f6dca0';
+    ctx.beginPath(); ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 20) ctx.lineTo(x, H - 40 - Math.sin(x / 70) * 10);
+    ctx.lineTo(W, H); ctx.fill();
+    ctx.strokeStyle = '#3fbf7f'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+    [0.08, 0.2, 0.82, 0.93].forEach((p, i) => {
+      const bx = W * p, by = H - 40;
+      ctx.beginPath(); ctx.moveTo(bx, by);
+      for (let k = 1; k <= 6; k++) ctx.lineTo(bx + Math.sin(t / 700 + k * .7 + i) * 10, by - k * 22);
+      ctx.stroke();
+    });
+  }
+
+  function face(x, y, s, happy, ouch) {
+    ctx.fillStyle = '#2a2a3a'; ctx.strokeStyle = '#2a2a3a';
+    if (ouch) { // > <
+      ctx.lineWidth = s * .3; ctx.lineCap = 'round';
+      [-1, 1].forEach(k => {
+        const cx = x + k * s * 1.4;
+        ctx.beginPath(); ctx.moveTo(cx - k * s * .6, y - s * .6); ctx.lineTo(cx + k * s * .4, y); ctx.lineTo(cx - k * s * .6, y + s * .6); ctx.stroke();
+      });
+    } else if (happy) {
+      ctx.lineWidth = s * .18;
+      [-1, 1].forEach(k => { ctx.beginPath(); ctx.arc(x + k * s * 1.4, y, s * .7, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); });
+    } else {
+      [-1, 1].forEach(k => {
+        ctx.fillStyle = '#2a2a3a';
+        ctx.beginPath(); ctx.arc(x + k * s * 1.4, y, s, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x + k * s * 1.4 + s * .3, y - s * .3, s * .35, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+    ctx.fillStyle = 'rgba(255,110,140,.45)';
+    [-1, 1].forEach(k => { ctx.beginPath(); ctx.ellipse(x + k * s * 2.6, y + s * 1.2, s * .8, s * .5, 0, 0, Math.PI * 2); ctx.fill(); });
+    ctx.strokeStyle = '#2a2a3a'; ctx.lineWidth = s * .25;
+    ctx.beginPath();
+    if (ouch) ctx.arc(x, y + s * 1.4, s * .45, 0, Math.PI * 2);
+    else ctx.arc(x, y + s * .9, s * .8, Math.PI * .15, Math.PI * .85);
+    ctx.stroke();
+  }
+
+  function jellyShape(r, color, t, seed, tentacles = 5) {
+    ctx.strokeStyle = color; ctx.lineWidth = r * .08; ctx.lineCap = 'round';
+    const h = (tentacles - 1) / 2;
+    for (let i = -h; i <= h; i++) {
+      ctx.beginPath(); ctx.moveTo(i * r * .5 / h, 0);
+      ctx.quadraticCurveTo(i * r * .6 / h + Math.sin(t / 250 + i + seed) * r * .15, r * .5, i * r * .5 / h, r * .9); ctx.stroke();
+    }
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, 0, r * .6, Math.PI, 0); ctx.quadraticCurveTo(r * .3, r * .15, 0, r * .1); ctx.quadraticCurveTo(-r * .3, r * .15, -r * .6, 0); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse(-r * .25, -r * .35, r * .12, r * .07, -.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawThing(th, t) {
+    const { x, y, r, color, dir } = th;
+    const happy = th.hit > 0;
+    const sc = happy ? 1 + Math.sin(th.hit * Math.PI) * .25 : 1;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(sc, sc);
+    ctx.globalAlpha = happy ? Math.max(0, 1 - th.hit) : 1;
+    const wob = Math.sin(t / 300 + th.t);
+    if (th.kind === 'jelly') {
+      ctx.scale(1 + wob * .05, 1 - wob * .05);
+      jellyShape(r, color, t, th.t);
+      face(0, -r * .2, r * .06, happy);
+    } else if (th.kind === 'fish') {
+      ctx.scale(dir, 1);
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.moveTo(-r * .45, 0); ctx.lineTo(-r * .85, -r * .3 - wob * r * .05); ctx.lineTo(-r * .85, r * .3 + wob * r * .05); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, 0, r * .55, r * .38, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      ctx.beginPath(); ctx.ellipse(-r * .05, r * .15, r * .3, r * .1, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.scale(dir, 1);
+      face(dir * r * .22, -r * .08, r * .055, happy);
+    } else if (th.kind === 'octo') {
+      ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = r * .14; ctx.lineCap = 'round';
+      for (let i = -3; i <= 3; i += 2) {
+        ctx.beginPath(); ctx.moveTo(i * r * .12, r * .1);
+        ctx.quadraticCurveTo(i * r * .2 + Math.sin(t / 200 + i) * r * .12, r * .45, i * r * .28, r * .65); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.ellipse(0, -r * .1, r * .5, r * .45, 0, 0, Math.PI * 2); ctx.fill();
+      face(0, -r * .1, r * .06, happy);
+    } else if (th.kind === 'dolphin') {
+      ctx.scale(dir, 1);
+      ctx.rotate(Math.sin(t / 350 + th.t) * .12);
+      ctx.fillStyle = color;
+      // tail fluke
+      ctx.beginPath(); ctx.moveTo(-r * .55, 0);
+      ctx.lineTo(-r * .9, -r * .22 - wob * r * .06); ctx.quadraticCurveTo(-r * .78, 0, -r * .9, r * .22 + wob * r * .06); ctx.closePath(); ctx.fill();
+      // dorsal fin
+      ctx.beginPath(); ctx.moveTo(-r * .1, -r * .26); ctx.quadraticCurveTo(-r * .05, -r * .55, -r * .3, -r * .52); ctx.lineTo(-r * .3, -r * .22); ctx.fill();
+      // body
+      ctx.beginPath(); ctx.ellipse(0, 0, r * .62, r * .3, 0, 0, Math.PI * 2); ctx.fill();
+      // snout
+      ctx.beginPath(); ctx.ellipse(r * .62, r * .06, r * .2, r * .09, .1, 0, Math.PI * 2); ctx.fill();
+      // belly
+      ctx.fillStyle = '#e8f6ff';
+      ctx.beginPath(); ctx.ellipse(r * .1, r * .14, r * .42, r * .12, 0, 0, Math.PI * 2); ctx.fill();
+      // flipper
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.ellipse(r * .02, r * .24, r * .16, r * .07, .6 + wob * .2, 0, Math.PI * 2); ctx.fill();
+      ctx.scale(dir, 1);
+      face(dir * r * .36, -r * .06, r * .045, happy);
+    } else { // turtle
+      ctx.scale(dir, 1);
+      ctx.fillStyle = '#a8e08a';
+      [[-.35, .3], [.35, .3], [-.35, -.3], [.35, -.3]].forEach(([a, b], i) => {
+        ctx.beginPath(); ctx.ellipse(r * a, r * b, r * .18, r * .1, (i % 2 ? 1 : -1) * (.5 + wob * .3), 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.beginPath(); ctx.arc(r * .62, -r * .02, r * .2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.ellipse(0, 0, r * .5, r * .38, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(30,90,50,.35)'; ctx.lineWidth = r * .04;
+      ctx.beginPath(); ctx.arc(0, 0, r * .2, 0, Math.PI * 2); ctx.stroke();
+      ctx.scale(dir, 1);
+      face(dir * r * .62, -r * .05, r * .04, happy);
+    }
+    ctx.restore();
+  }
+
+  function drawBoss(t, dt) {
+    const b = boss; if (!b) return;
+    // movement
+    if (b.appear < 1) b.appear = Math.min(1, b.appear + .12 * dt);
+    if (!b.dying) {
+      const sway = reduce ? .4 : 1;
+      let tx, ty;
+      const tt = t * SPEED;
+      if (b.scary) { // fast, jumpy figure-eight
+        tx = W / 2 + (Math.sin(tt / 650 + b.t) * .28 + Math.sin(tt / 290) * .05) * W * sway;
+        ty = bossTargetY() + Math.sin(tt / 420 + b.t) * H * .1 * sway;
+      } else {
+        tx = W / 2 + Math.sin(tt / 1800 + b.t) * W * .18 * sway;
+        ty = bossTargetY() + Math.sin(tt / 1300 + b.t) * H * .05 * sway;
+      }
+      const k = Math.min(1, (b.scary ? .2 : .1) * dt);
+      b.x += (tx - b.x) * k; b.y += (ty - b.y) * k;
+    }
+    if (b.hitFlash > 0) b.hitFlash = Math.max(0, b.hitFlash - .06 * dt);
+    if (b.dying) {
+      b.dying += .025 * dt;
+      if (b.dying >= 1) {
+        const next = b.idx + 1, st = stage;
+        boss = null;
+        if (mode === 'play' && STAGES[st].boss && next < STAGES[st].boss.count) setTimeout(() => { if (mode === 'play' && stage === st) { makeBoss(next); updateHud(); } }, 150);
+        return;
+      }
+    }
+    // last boss: wind up (glows), then shoot
+    if (b.scary && !b.dying && b.enter <= 0 && mode === 'play') {
+      b.nextShot -= dt;
+      b.charge = b.nextShot < 35 ? 1 - b.nextShot / 35 : 0;
+      if (b.nextShot <= 0) { shoot(); b.nextShot = (reduce ? 170 : 105) + Math.random() * 40; b.charge = 0; }
+    }
+    if (b.scary) { drawScaryBoss(b, t); return; }
+    const wob = Math.sin(t / 400 + b.t);
+    const squish = b.hitFlash * .18;
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    if (b.appear < 1) { const e = popIn(b.appear); ctx.scale(e, e); }
+    if (b.dying) { const s = 1 + b.dying * .5; ctx.scale(s, s); ctx.globalAlpha = 1 - b.dying; ctx.rotate(b.dying * 2); }
+    ctx.scale(1 + wob * .04 + squish, 1 - wob * .04 - squish);
+    // crown so it reads as the boss
+    ctx.fillStyle = '#ffd23f';
+    const cr = b.r * .55;
+    ctx.beginPath();
+    ctx.moveTo(-cr * .5, -b.r * .6); ctx.lineTo(-cr * .55, -b.r * .88); ctx.lineTo(-cr * .25, -b.r * .72);
+    ctx.lineTo(0, -b.r * .95); ctx.lineTo(cr * .25, -b.r * .72); ctx.lineTo(cr * .55, -b.r * .88); ctx.lineTo(cr * .5, -b.r * .6); ctx.closePath(); ctx.fill();
+    jellyShape(b.r, b.color, t, b.t, 7);
+    if (b.hitFlash > 0) {
+      ctx.globalAlpha = b.hitFlash * .6; ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(0, 0, b.r * .6, Math.PI, 0); ctx.fill();
+      ctx.globalAlpha = b.dying ? 1 - b.dying : 1;
+    }
+    face(0, -b.r * .22, b.r * .055, !!b.dying, b.hitFlash > .2 && !b.dying);
+    ctx.restore();
+    hearts(b, b.y - b.r * 1.08);
+  }
+  function popIn(x) { const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); }
+  function hearts(b, y) {
+    if (b.dying || b.enter > 0) return;
+    const n = b.max, gap = Math.min(30, (W - 40) / n);
+    for (let i = 0; i < n; i++) {
+      const x = b.x - gap * (n - 1) / 2 + i * gap;
+      ctx.fillStyle = i < b.hp ? '#ff6b8f' : 'rgba(255,255,255,.3)';
+      heart(x, y, gap * .38);
+    }
+  }
+
+  function drawScaryBoss(b, t) {
+    const wob = Math.sin(t / 380 + b.t);
+    const squish = b.hitFlash * .16;
+    const shiver = b.charge > 0 ? Math.sin(t / 25) * b.charge * 4 : 0;
+    ctx.save();
+    ctx.translate(b.x + shiver, b.y);
+    if (b.appear < 1) { const e = popIn(b.appear); ctx.scale(e, e); }
+    if (b.dying) { const s = 1 + b.dying * .6; ctx.scale(s, s); ctx.globalAlpha = 1 - b.dying; ctx.rotate(b.dying * 3); }
+    ctx.scale(1 + wob * .04 + squish, 1 - wob * .04 - squish);
+    const r = b.r;
+    // dark aura, turns red while winding up
+    const aura = ctx.createRadialGradient(0, 0, r * .3, 0, 0, r * 1.1);
+    aura.addColorStop(0, b.charge > 0 ? `rgba(255,60,90,${.35 * b.charge})` : 'rgba(150,80,220,.18)');
+    aura.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = aura; ctx.beginPath(); ctx.arc(0, 0, r * 1.1, 0, Math.PI * 2); ctx.fill();
+    // zig-zag tentacles
+    ctx.strokeStyle = '#7d3fb0'; ctx.lineWidth = r * .07; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (let i = -3; i <= 3; i++) {
+      ctx.beginPath(); ctx.moveTo(i * r * .16, 0);
+      for (let k = 1; k <= 5; k++) {
+        const zig = (k % 2 ? 1 : -1) * r * .07 + Math.sin(t / 220 + i + k) * r * .05;
+        ctx.lineTo(i * r * .17 + zig, k * r * .2);
+      }
+      ctx.stroke();
+    }
+    // spiky bell
+    ctx.fillStyle = b.color;
+    ctx.beginPath();
+    ctx.moveTo(-r * .62, 0);
+    ctx.arc(0, 0, r * .62, Math.PI, 0);
+    for (let i = 0; i <= 8; i++) ctx.lineTo(r * .62 - i * r * 1.24 / 8, i % 2 ? r * .14 : 0);
+    ctx.fill();
+    // spikes on top
+    ctx.fillStyle = '#3d1a5e';
+    for (let i = -2; i <= 2; i++) {
+      const a = -Math.PI / 2 + i * .42, bx = Math.cos(a) * r * .6, by = Math.sin(a) * r * .6;
+      ctx.beginPath();
+      ctx.moveTo(bx + Math.cos(a + 1.5) * r * .07, by + Math.sin(a + 1.5) * r * .07);
+      ctx.lineTo(Math.cos(a) * r * .8, Math.sin(a) * r * .8);
+      ctx.lineTo(bx + Math.cos(a - 1.5) * r * .07, by + Math.sin(a - 1.5) * r * .07);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.18)'; ctx.beginPath(); ctx.ellipse(-r * .27, -r * .36, r * .13, r * .07, -.5, 0, Math.PI * 2); ctx.fill();
+    if (b.hitFlash > 0) {
+      ctx.globalAlpha = b.hitFlash * .55; ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(0, 0, r * .62, Math.PI, 0); ctx.fill();
+      ctx.globalAlpha = b.dying ? 1 - b.dying : 1;
+    }
+    // face
+    const ey = -r * .24, s = r * .07;
+    if (b.dying) { face(0, ey, s * .8, true); }
+    else if (b.hitFlash > .2) { face(0, ey, s * .8, false, true); }
+    else {
+      // glowing eyes + angry brows
+      [-1, 1].forEach(k => {
+        const ex = k * r * .2;
+        ctx.fillStyle = b.charge > 0 ? '#ff4d6d' : '#ffd23f';
+        ctx.beginPath(); ctx.ellipse(ex, ey, s * 1.1, s * .9, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#1a0d2b';
+        ctx.beginPath(); ctx.ellipse(ex + k * -s * .1, ey + s * .1, s * .35, s * .6, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#1a0d2b'; ctx.lineWidth = s * .45;
+        ctx.beginPath(); ctx.moveTo(ex + k * s * 1.4, ey - s * 1.9); ctx.lineTo(ex - k * s * .9, ey - s * 1.0); ctx.stroke();
+      });
+      // toothy grin
+      const my = ey + s * 2.2, mw = r * .2;
+      ctx.fillStyle = '#1a0d2b';
+      ctx.beginPath(); ctx.moveTo(-mw, my); ctx.quadraticCurveTo(0, my + s * (b.charge > 0 ? 3 : 1.8), mw, my); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff';
+      for (let i = 0; i < 4; i++) {
+        const tx = -mw * .7 + i * mw * .47;
+        ctx.beginPath(); ctx.moveTo(tx - s * .35, my + 1); ctx.lineTo(tx, my + s * .7); ctx.lineTo(tx + s * .35, my + 1); ctx.fill();
+      }
+    }
+    ctx.restore();
+    hearts(b, b.y - b.r * .98);
+  }
+
+  function drawInks(t, dt) {
+    for (let i = inks.length - 1; i >= 0; i--) {
+      const k = inks[i];
+      k.x += k.vx * dt + Math.sin(t / 200 + k.t) * .6; k.y += k.vy * dt;
+      if (k.y > H - 45) {   // landed: shake, and the boss gets back one heart
+        inks.splice(i, 1);
+        shake = 1; ouchSound(); addBubbles(k.x, H - 60, 10);
+        floats.push({ x: k.x, y: H - 90, text: 'わっ！', life: 1 });
+        const b = boss;
+        if (b && !b.dying && b.hp < b.max && mode === 'play' && !k.volley.healed) {
+          k.volley.healed = true;
+          b.hp++; score = Math.max(STAGES[stage].from, score - 1); updateHud();
+          floats.push({ x: b.x, y: b.y - b.r * 1.2, text: 'かいふく', life: 1 });
+          tone(mtof(76), .2, 'sine', .12, 1.3);
+        }
+        continue;
+      }
+      ctx.save(); ctx.translate(k.x, k.y);
+      const g = ctx.createRadialGradient(-k.r * .3, -k.r * .3, k.r * .1, 0, 0, k.r);
+      g.addColorStop(0, '#b77bff'); g.addColorStop(1, '#3d1a5e');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, k.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0, 0, k.r, 0, Math.PI * 2); ctx.stroke();
+      // tiny grumpy face so it reads as "tap me"
+      ctx.fillStyle = '#fff';
+      [-1, 1].forEach(s => { ctx.beginPath(); ctx.arc(s * k.r * .3, -k.r * .1, k.r * .13, 0, Math.PI * 2); ctx.fill(); });
+      ctx.restore();
+    }
+  }
+  const floats = [];
+  function drawFloats(dt) {
+    for (let i = floats.length - 1; i >= 0; i--) {
+      const f = floats[i];
+      f.y -= .8 * dt; f.life -= .02 * dt;
+      if (f.life <= 0) { floats.splice(i, 1); continue; }
+      ctx.globalAlpha = f.life; ctx.fillStyle = '#fff';
+      ctx.font = `900 ${Math.round(Math.min(W, H) * .07)}px "Zen Maru Gothic", sans-serif`;
+      ctx.textAlign = 'center'; ctx.fillText(f.text, f.x, f.y);
+      ctx.globalAlpha = 1;
+    }
+  }
+  function heart(x, y, s) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + s * .9);
+    ctx.bezierCurveTo(x - s * 1.4, y - s * .1, x - s * .6, y - s * 1.1, x, y - s * .35);
+    ctx.bezierCurveTo(x + s * .6, y - s * 1.1, x + s * 1.4, y - s * .1, x, y + s * .9);
+    ctx.fill();
+  }
+
+  function drawStar(x, y, s) {
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? s * .45 : s;
+      ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.closePath(); ctx.fill();
+  }
+
+  function ambient() { if (Math.random() < .03) bubbles.push({ x: Math.random() * W, y: H - 30, r: 3 + Math.random() * 6, vy: -(.6 + Math.random()), life: 1, slow: true }); }
+
+  let last = 0, spawnTimer = 0;
+  function frame(t) {
+    const dt = Math.min(50, t - (last || t)) / 16.67; last = t;
+    if (seaMix < 1) seaMix = Math.min(1, seaMix + .01 * dt);
+    ctx.save();
+    if (shake > 0) { shake = Math.max(0, shake - .05 * dt); ctx.translate(Math.sin(t / 20) * 10 * shake, Math.cos(t / 27) * 6 * shake); }
+    drawSea(t);
+    ambient();
+
+    for (let i = bubbles.length - 1; i >= 0; i--) {
+      const b = bubbles[i];
+      b.y += b.vy * dt; b.x += Math.sin(t / 300 + i) * .3;
+      b.life -= (b.slow ? .002 : .012) * dt;
+      if (b.life <= 0 || b.y < -20) { bubbles.splice(i, 1); continue; }
+      ctx.strokeStyle = `rgba(255,255,255,${.7 * b.life})`; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    if (mode === 'play' && !STAGES[stage].boss) {
+      spawnTimer -= dt;
+      const st = STAGES[stage];
+      if (things.filter(x => !x.hit).length < st.max && spawnTimer <= 0) { spawn(); spawnTimer = (50 + Math.random() * 40) / st.speed / SPEED; }
+    }
+    if (mode === 'end') {
+      spawnTimer -= dt;
+      if (things.length < 6 && spawnTimer <= 0) { spawn(['fish', 'dolphin', 'turtle', 'jelly', 'octo']); spawnTimer = 60; }
+    }
+
+    for (let i = things.length - 1; i >= 0; i--) {
+      const th = things[i];
+      if (th.hit) {
+        th.hit += .03 * dt;
+        if (th.hit >= 1) { things.splice(i, 1); continue; }
+      } else {
+        th.x += th.vx * dt;
+        if (th.kind === 'dolphin') th.y = th.baseY + Math.sin(th.x / 90) * th.r * .5;   // dolphins swim in waves
+        else th.y += th.vy * dt + Math.sin(t / 600 + th.t) * .3;
+        if (th.kind === 'jelly' && (th.x < th.r || th.x > W - th.r)) th.vx *= -1;
+        const out = th.y < -th.r * 1.5 || th.x < -th.r * 2 || th.x > W + th.r * 2;
+        if (out) { things.splice(i, 1); continue; }
+      }
+      drawThing(th, t);
+    }
+
+    drawBoss(t, dt);
+    drawInks(t, dt);
+    drawCelebration(t, dt);
+
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      const dr = p.drag || .96;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= dr; p.vy *= dr; p.vy += (p.grav ?? -.03) * dt;
+      p.life -= (p.decay || .02) * dt;
+      if (p.life <= 0) { parts.splice(i, 1); continue; }
+      ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
+      if (p.star) drawStar(p.x, p.y, p.size * p.life + 3);
+      else { ctx.beginPath(); ctx.arc(p.x, p.y, p.size * .5 * p.life + 2, 0, Math.PI * 2); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+    drawFloats(dt);
+    ctx.restore();
+    requestAnimationFrame(frame);
+  }
+
+  // ================= BOOT =================
+  function stageForScore(s) { for (let i = LAST; i > 1; i--) if (s >= STAGES[i].from) return i; return 1; }
+
+  function resetAll() {
+    score = 0; stage = 1; boss = null;
+    things.length = 0; parts.length = 0; inks.length = 0; floats.length = 0; shake = 0;
+    clearInterval(partyTimer);
+    endTimers.forEach(clearTimeout); endTimers = [];
+    rockets.length = 0; confetti.length = 0; confettiOn = false;
+    $('flash').hidden = true;
+  }
+
+  function start(data) {
+    if (data && typeof data.score === 'number' && data.score > 0 && data.score < STAGES[LAST].goal) {
+      score = data.score; stage = stageForScore(score);
+      $('start').textContent = 'つづきから';
+      $('restart').hidden = false;
+      $('coverText').innerHTML = `${STAGES[stage].name} から<br>あそべるよ`;
+    }
+    seaFrom = STAGES[stage].sea.slice(); seaTo = seaFrom.slice(); seaMix = 1;
+    updateHud();
+    // a few friends behind the start screen so the first frame isn't empty
+    for (let i = 0; i < 3; i++) { spawn(['jelly', 'fish', 'turtle', 'dolphin']); const th = things[things.length - 1]; th.x = W * (0.2 + i * .3); th.y = th.baseY = H * (0.35 + (i % 2) * .2); }
+    requestAnimationFrame(frame);
+  }
+
+  function begin() {
+    audio();
+    tone(mtof(72), .2, 'triangle', .25); setTimeout(() => tone(mtof(79), .3, 'triangle', .25), 120);
+    $('cover').hidden = true;
+    things.length = 0;
+    enterStage(stage, true);
+  }
+  $('start').addEventListener('click', begin);
+  $('restart').addEventListener('click', () => { resetAll(); begin(); });
+  $('again').addEventListener('click', () => {
+    $('ending').hidden = true;
+    resetAll(); audio();
+    enterStage(1, true);
+  });
+  $('snd').addEventListener('click', e => {
+    soundOn = !soundOn;
+    e.currentTarget.textContent = soundOn ? 'おと：あり' : 'おと：なし';
+    if (soundOn) audio();
+    if (bgmGain) bgmGain.gain.value = soundOn ? .55 : 0;
+  });
+
+  window.claude?.hot?.snapshot?.(() => ({ score }));
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+</body>
+</html>
